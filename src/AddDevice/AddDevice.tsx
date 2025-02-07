@@ -7,8 +7,8 @@ function AddDevice() {
   const [deviceType, setDeviceType] = useState<string>("");
   const [deviceIP, setDeviceIP] = useState<string>("");
   const [deviceToken, setDeviceToken] = useState<string>("");
-  const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
   const [message, setMessage] = useState<string>("");
+  const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
 
   useEffect(() => {
     async function getDeviceTypes() {
@@ -25,8 +25,7 @@ function AddDevice() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     try {
-      // TODO: Adjust this invoke call to match your Tauri backend for adding devices
-      await invoke("add_device", { deviceIP, deviceToken, deviceType });
+      await invoke("add_device", { ip: deviceIP, token: deviceToken, deviceType: deviceType, name: deviceName });
       setMessage("Device added successfully!");
       setDeviceName("");
       setDeviceType("");
