@@ -1,0 +1,78 @@
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #00000015;
+}
+
+nav {
+    /* This ensures nav stays in center even with other elements */
+    flex: 1;
+    text-align: center;
+}
+
+/* Style the back button container */
+button {
+min-width: 80px; /* or whatever width matches your div */
+}
+
+/* Style the empty div to match button width */
+header > div:last-child {
+min-width: 80px;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+/* Style for the Close button */
+.close-button {
+    padding: 0.6em 0.4em;
+    background-color: #e8e8e8;
+    color: #0f0f0f;
+    font-size: 1em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.25s ease;
+    margin-top: 1em;
+  }
+  
+.close-button:hover {
+background-color: #d0d0d0;
+}
+
+.modal-content {
+    background-color: #ffffff;
+    color: #0f0f0f;
+    padding: 0;
+    border-radius: 8px;
+    max-width: 90%;
+    width: 500px;
+    box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+    .modal-content {
+        background-color: #0f0f0f64;
+        color: #ffffff;
+    }
+
+    .close-button {
+        background-color: #353535;
+        color: #ffffff;
+    }
+      
+    .close-button:hover {
+    background-color: #444;
+    }
+}
