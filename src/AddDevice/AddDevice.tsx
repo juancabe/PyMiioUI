@@ -25,15 +25,29 @@ function AddDevice() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     try {
-      await invoke("add_device", { ip: deviceIP, token: deviceToken, deviceType: deviceType, name: deviceName });
-      setMessage("Device added successfully!");
+      let res: StateDevice = await invoke("add_device", {
+        ip: deviceIP,
+        token: deviceToken,
+        deviceType: deviceType,
+        name: deviceName,
+      });
+      if (res.found) {
+        setMessage("Device added successfully!");
+      } else {
+        setMessage("Error while connecting to device, added to saved devices");
+      }
+
+      // Clear fields
       setDeviceName("");
       setDeviceType("");
       setDeviceIP("");
       setDeviceToken("");
+
+      // Dispatch an event to notify that a device was added
+      window.dispatchEvent(new CustomEvent("deviceAdded"));
     } catch (error) {
       console.error("Error adding device:", error);
-      setMessage("Failed to add device.");
+      setMessage("Failed to add device: " + error);
     }
   }
 

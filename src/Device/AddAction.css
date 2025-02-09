@@ -1,0 +1,70 @@
+.add-action-container {
+  background-color: #ffffff;
+  padding: 4px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: auto;
+}
+
+.add-action-container form {
+  background-color: #00000012;
+  padding: 4px;
+  border-radius: 10px;
+}
+
+.add-arguments {
+  background-color: #00000015;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.add-arguments h3 {
+  margin-block-start: 0.2em;
+  margin-block-end: 0.7em;
+}
+
+.argument-inputs {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  background-color: #00000087;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.argument-inputs input{
+  padding: 0px 5px !important;
+  min-width: 0px !important;
+}
+
+.argument-inputs button{
+  display: flex;
+  align-items: center;
+  padding: 4px;
+}
+
+
+@media (prefers-color-scheme: dark) {
+
+  .add-action-container {
+    background-color: #000000cc;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-width: 500px;
+    margin: auto;
+  }
+
+  .add-action-container form {
+    background-color: #ffffff12;
+  }
+  
+  .add-arguments {
+    background-color: #ffffff15;
+  }
+  
+  .argument-inputs {
+    background-color: #ffffff87;
+  }
+}

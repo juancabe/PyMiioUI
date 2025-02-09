@@ -1,0 +1,90 @@
+.logs-display {
+  padding: 20px;
+  background-color: #f4f4f8;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #333;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 320px;
+}
+
+.logs-display h1 {
+  font-size: 26px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.logs-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  background-color: #fff;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.log {
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 8px;
+  transition: background-color 0.3s, transform 0.3s;
+  cursor: default;
+}
+
+.log:last-child {
+  border-bottom: none;
+}
+
+.log:hover {
+  background-color: #f2f2f2;
+  transform: translateX(5px);
+}
+
+.log p {
+  margin: 4px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.log .timestamp {
+  font-weight: bold;
+  color: #555;
+}
+
+.log .emmiter {
+  font-style: italic;
+  color: #777;
+}
+
+@media (prefers-color-scheme: dark) {
+  .logs-display {
+      background-color: #1e1e2f;
+      color: #e0e0e0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .logs-container {
+      background-color: #27293d;
+      border-color: #444;
+  }
+
+  .log {
+      border-bottom-color: #444;
+  }
+
+  .log p {
+      color: #c5c5c5;
+  }
+
+  .log .timestamp {
+      color: #a0a0a0;
+  }
+
+  .log .emmiter {
+      color: #8b8b8b;
+  }
+
+  .log:hover {
+      background-color: #2e2f44;
+      transform: translateX(5px);
+  }
+}

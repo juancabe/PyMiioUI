@@ -1,9 +1,22 @@
 use rust_py_miio;
-use serde::{ser::SerializeStruct, Serialize};
+use serde::ser::SerializeStruct;
 use serde_json;
 use std::sync::Mutex;
-use tauri::{Manager, State};
+use tauri::Manager;
 use tauri_plugin_store::StoreExt;
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct Argument {
+    name: String,
+    value: String,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+struct Action {
+    name: String,
+    method: String,
+    arguments: Vec<Argument>,
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 struct StoreDevice {
@@ -11,15 +24,23 @@ struct StoreDevice {
     ip: String,
     token: String,
     device_type: String,
+    actions: Vec<Action>,
 }
 
 impl StoreDevice {
-    fn new(name: String, ip: String, token: String, device_type: String) -> Self {
+    fn new(
+        name: String,
+        ip: String,
+        token: String,
+        device_type: String,
+        actions: Vec<Action>,
+    ) -> Self {
         Self {
             name,
             ip,
             token,
             device_type,
+            actions,
         }
     }
 }
@@ -37,6 +58,11 @@ impl StateDevice {
         }
     }
 }
+#[derive(serde::Serialize)]
+struct Method {
+    name: String,
+    signature: String,
+}
 
 impl serde::Serialize for StateDevice {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -49,6 +75,23 @@ impl serde::Serialize for StateDevice {
         state_device.serialize_field("token", &self.store_device.token)?;
         state_device.serialize_field("deviceType", &self.store_device.device_type)?;
         state_device.serialize_field("found", &self.device.is_some())?;
+        state_device.serialize_field(
+            "methods",
+            &self.device.as_ref().map_or_else(
+                || Vec::new(),
+                |d| {
+                    let mut v = Vec::new();
+                    d.callable_methods.iter().for_each(|m| {
+                        v.push(Method {
+                            name: m.0.clone(),
+                            signature: m.1.clone(),
+                        });
+                    });
+                    v
+                },
+            ),
+        )?;
+        state_device.serialize_field("actions", &self.store_device.actions)?;
         state_device.end()
     }
 }
@@ -70,6 +113,76 @@ impl Default for AppState {
 enum UserSettings {}
 
 #[tauri::command]
+async fn add_action(
+    state: tauri::State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+    device_name: String,
+    action: Action,
+) -> Result<(), String> {
+    let devices_store = app.store("devices.json").map_err(|err| {
+        format!(
+            "Opening devices store, try again or restart: {}",
+            err.to_string()
+        )
+    })?;
+
+    let mut state = state
+        .lock()
+        .map_err(|err| format!("Locking state, try again or restart: {}", err.to_string()))?;
+
+    let device = state
+        .loaded_devices
+        .as_mut()
+        .ok_or_else(|| "No devices loaded".to_string())?
+        .iter_mut()
+        .find(|sd| sd.store_device.name == device_name)
+        .ok_or_else(|| "Device not found".to_string())?;
+
+    device.store_device.actions.push(action.clone());
+
+    devices_store.set(
+        &device_name,
+        serde_json::to_string(&device.store_device).map_err(|err| {
+            format!(
+                "Serializing device: {}, try again or restart",
+                err.to_string()
+            )
+        })?,
+    );
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn run_action(
+    state: tauri::State<'_, Mutex<AppState>>,
+    device_name: String,
+    action: Action,
+) -> Result<String, String> {
+    let state = state.lock().unwrap();
+    let device = state
+        .loaded_devices
+        .as_ref()
+        .ok_or_else(|| "No devices loaded".to_string())?
+        .iter()
+        .find(|sd| sd.store_device.name == device_name)
+        .ok_or_else(|| "Device not found".to_string())?;
+
+    let device = device
+        .device
+        .as_ref()
+        .ok_or_else(|| "Device not connected".to_string())?;
+
+    let res = device
+        .call_method(
+            &action.method,
+            action.arguments.iter().map(|a| a.value.as_str()).collect(),
+        )
+        .map_err(|err| format!("Error calling method: {}", err))?;
+    Ok(res)
+}
+
+#[tauri::command]
 fn greet(_name: &str) -> String {
     let res = rust_py_miio::get_device_types()
         .unwrap_or_else(|err| Vec::from(["Error:".to_string() + err.to_string().as_str()]));
@@ -84,10 +197,14 @@ fn get_state_devices(state: tauri::State<'_, Mutex<AppState>>) -> Vec<StateDevic
 
 #[tauri::command]
 fn get_device_types(state: tauri::State<'_, Mutex<AppState>>) -> Result<Vec<String>, String> {
-    let state = state
+    let mut dvs = state
         .lock()
-        .map_err(|err| format!("Locking state, try again or restart: {}", err.to_string()))?;
-    Ok(state.device_types.clone().unwrap_or_default())
+        .map_err(|err| format!("Locking state, try again or restart: {}", err.to_string()))?
+        .device_types
+        .clone()
+        .unwrap_or_default();
+    dvs.sort();
+    Ok(dvs)
 }
 
 #[tauri::command]
@@ -100,7 +217,67 @@ fn update_device_types(state: tauri::State<'_, Mutex<AppState>>) -> Result<(), S
 }
 
 #[tauri::command]
-fn add_device(
+async fn remove_device(
+    state: tauri::State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+    name: String,
+) -> Result<(), String> {
+    eprintln!("Removing device: {}", name);
+    let devices_store = app.store("devices.json").map_err(|err| {
+        format!(
+            "Opening devices store, try again or restart: {}",
+            err.to_string()
+        )
+    })?;
+
+    let mut err_msg = "COMPLETLY UNEXPECTED"; // This should never be seen
+
+    // Delete from store
+    let store_deleted = devices_store.delete(&name);
+    if !store_deleted {
+        err_msg = "Device not found on store";
+    }
+
+    // Delete from state
+    let mut state_deleted = false;
+
+    let mut app_state = state
+        .lock()
+        .map_err(|err| format!("Locking state, try again or restart: {}", err.to_string()))?;
+
+    if let Some(ref mut state_devices) = app_state.loaded_devices {
+        state_devices.retain(|sd| {
+            if sd.store_device.name == name {
+                if state_deleted {
+                    eprintln!("Device found twice: {}", name);
+                    return false;
+                }
+                state_deleted = true;
+                false
+            } else {
+                true
+            }
+        });
+    }
+
+    if !state_deleted {
+        err_msg = "Device not found on state";
+    }
+
+    if store_deleted && state_deleted {
+        eprintln!("Device removed: {}", name);
+        return Ok(());
+    } else if !(store_deleted || state_deleted) {
+        eprintln!("Device not found: {}", name);
+        return Err("Device not found".to_string());
+    } else {
+        eprintln!("Unexpected Error removing device");
+        return Err("Unexpected Error removing device: ".to_string() + err_msg);
+    }
+}
+
+#[tauri::command]
+async fn add_device(
     state: tauri::State<'_, Mutex<AppState>>,
     app: tauri::AppHandle,
     ip: String,
@@ -109,6 +286,7 @@ fn add_device(
     name: String,
 ) -> Result<StateDevice, String> {
     // Check if device name already exists
+    eprintln!("Adding device: {}", name);
     let devices_store = app.store("devices.json").map_err(|err| {
         format!(
             "Opening devices store, try again or restart: {}",
@@ -132,12 +310,19 @@ fn add_device(
             ip.clone(),
             token.clone(),
             device_type.clone(),
+            Vec::new(),
         ))
         .map_err(|err| format!("Serializing device: {}", err))?,
     );
 
     let state_device = StateDevice::from(
-        StoreDevice::new(name.clone(), ip.clone(), token.clone(), device_type.clone()),
+        StoreDevice::new(
+            name.clone(),
+            ip.clone(),
+            token.clone(),
+            device_type.clone(),
+            Vec::new(),
+        ),
         device.clone(),
     );
 
@@ -151,12 +336,17 @@ fn add_device(
         .push(state_device);
 
     let state_device = StateDevice::from(
-        StoreDevice::new(name.clone(), ip.clone(), token.clone(), device_type.clone()),
+        StoreDevice::new(
+            name.clone(),
+            ip.clone(),
+            token.clone(),
+            device_type.clone(),
+            Vec::new(),
+        ),
         device,
     );
 
-    devices_store.close_resource();
-
+    eprintln!("Device added: {}", name);
     Ok(state_device)
 }
 
@@ -207,9 +397,6 @@ pub fn run() {
                     .push(sd);
             });
 
-            settings_store.close_resource();
-            devices_store.close_resource();
-
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -219,7 +406,10 @@ pub fn run() {
             get_device_types,
             update_device_types,
             add_device,
-            get_state_devices
+            get_state_devices,
+            remove_device,
+            add_action,
+            run_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
