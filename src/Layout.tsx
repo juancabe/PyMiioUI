@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
-import { Outlet, useNavigate, Link } from "react-router-dom";
+import { Outlet, Link } from "react-router-dom";
 import AddDevice from "./AddDevice/AddDevice";
 import "./Layout.css";
-import XSquare from "./assets/x-square.svg?react";
 import { CircleX } from "lucide-react";
 import LogsDisplay, { Log } from "./LogsDisplay/LogsDisplay";
 
 function Layout() {
-  const navigate = useNavigate();
+  // const navigate = useNavigate();
   const [showAddDevice, setShowAddDevice] = useState(false);
   const [showActionLogs, setShowActionLogs] = useState(false);
 

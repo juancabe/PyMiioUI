@@ -1,5 +1,5 @@
 use rust_py_miio;
-use serde::ser::SerializeStruct;
+use serde::{de, ser::SerializeStruct};
 use serde_json;
 use std::sync::Mutex;
 use tauri::Manager;
@@ -69,7 +69,7 @@ impl serde::Serialize for StateDevice {
     where
         S: serde::Serializer,
     {
-        let mut state_device = serializer.serialize_struct("StateDevice", 4)?;
+        let mut state_device = serializer.serialize_struct("StateDevice", 7)?;
         state_device.serialize_field("name", &self.store_device.name)?;
         state_device.serialize_field("ip", &self.store_device.ip)?;
         state_device.serialize_field("token", &self.store_device.token)?;
@@ -111,6 +111,53 @@ impl Default for AppState {
 }
 
 enum UserSettings {}
+#[tauri::command]
+async fn remove_action(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, Mutex<AppState>>,
+    device_name: String,
+    action_name: String,
+) -> Result<(), String> {
+    let devices_store = app.store("devices.json").map_err(|err| {
+        format!(
+            "Opening devices store, try again or restart: {}",
+            err.to_string()
+        )
+    })?;
+
+    let mut state = state
+        .lock()
+        .map_err(|err| format!("Locking state, try again or restart: {}", err.to_string()))?;
+
+    let device = state
+        .loaded_devices
+        .as_mut()
+        .ok_or_else(|| "No devices loaded".to_string())?
+        .iter_mut()
+        .find(|sd| sd.store_device.name == device_name)
+        .ok_or_else(|| "Device not found".to_string())?;
+
+    let action_index = device
+        .store_device
+        .actions
+        .iter()
+        .position(|a| a.name == action_name)
+        .ok_or_else(|| "Action not found".to_string())?;
+
+    device.store_device.actions.remove(action_index);
+
+    devices_store.set(
+        &device_name,
+        serde_json::to_string(&device.store_device).map_err(|err| {
+            format!(
+                "Serializing device: {}, try again or restart",
+                err.to_string()
+            )
+        })?,
+    );
+
+    Ok(())
+}
 
 #[tauri::command]
 async fn add_action(
@@ -137,6 +184,15 @@ async fn add_action(
         .iter_mut()
         .find(|sd| sd.store_device.name == device_name)
         .ok_or_else(|| "Device not found".to_string())?;
+
+    if device
+        .store_device
+        .actions
+        .iter()
+        .any(|a| a.name == action.name)
+    {
+        return Err("Action name already exists".to_string());
+    }
 
     device.store_device.actions.push(action.clone());
 
@@ -350,6 +406,34 @@ async fn add_device(
     Ok(state_device)
 }
 
+/// Reloads a device from the state. Preserving everything but the Option<Device>, which is updated.
+#[tauri::command]
+async fn reload_device(
+    state: tauri::State<'_, Mutex<AppState>>,
+    device_name: &str,
+) -> Result<StateDevice, String> {
+    let mut state = state.lock().unwrap();
+    let state_device = state
+        .loaded_devices
+        .as_mut()
+        .ok_or_else(|| "No devices loaded".to_string())?
+        .iter_mut()
+        .find(|sd| sd.store_device.name == device_name)
+        .ok_or_else(|| "Device not found".to_string())?;
+
+    let device = rust_py_miio::Device::create_device(
+        &state_device.store_device.ip,
+        &state_device.store_device.token,
+        &state_device.store_device.device_type,
+    )
+    .map_err(|err| format!("Creating device: {}", err))
+    .ok();
+
+    state_device.device = device;
+
+    Ok(state_device.clone())
+}
+
 fn state_devices_from_entries<'a>(
     entries: &'a [(String, serde_json::Value)],
 ) -> impl Iterator<Item = StateDevice> + 'a {
@@ -409,7 +493,9 @@ pub fn run() {
             get_state_devices,
             remove_device,
             add_action,
-            run_action
+            run_action,
+            reload_device,
+            remove_action
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

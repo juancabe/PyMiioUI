@@ -5,7 +5,6 @@ import { invoke } from "@tauri-apps/api/core";
 import ShowError, { ShowErrorProps } from "./ShowError/ShowError";
 import Device from "./Device/Device";
 import { CircleX } from "lucide-react";
-import useStateWithCallback from "./utils/useStateWithCallback";
 
 function App() {
   const [devices, setDevices] = useState<StateDevice[]>([]);
