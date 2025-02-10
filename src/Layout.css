@@ -1,3 +1,7 @@
+* {
+    user-select: none;
+}
+
 :root {
     font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
     font-size: 16px;
@@ -177,6 +181,10 @@ ul li p {
 
 ul li .action-details-container {
     width: 100%;
+}
+
+.loader-action-icon {
+    animation: spin 1s linear infinite;
 }
 
 @media (prefers-color-scheme: dark) {

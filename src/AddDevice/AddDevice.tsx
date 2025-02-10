@@ -1,6 +1,7 @@
 import { useEffect, useState, FormEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./AddDevice.css";
+import { Loader } from "lucide-react";
 
 function AddDevice() {
   const [deviceName, setDeviceName] = useState<string>("");
@@ -9,6 +10,7 @@ function AddDevice() {
   const [deviceToken, setDeviceToken] = useState<string>("");
   const [message, setMessage] = useState<string>("");
   const [deviceTypes, setDeviceTypes] = useState<string[]>([]);
+  const [addingDevice, setAddingDevice] = useState<boolean>(false);
 
   useEffect(() => {
     async function getDeviceTypes() {
@@ -25,6 +27,7 @@ function AddDevice() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     try {
+      setAddingDevice(true);
       let res: StateDevice = await invoke("add_device", {
         ip: deviceIP,
         token: deviceToken,
@@ -49,6 +52,7 @@ function AddDevice() {
       console.error("Error adding device:", error);
       setMessage("Failed to add device: " + error);
     }
+    setAddingDevice(false);
   }
 
   return (
@@ -102,7 +106,13 @@ function AddDevice() {
             required
           />
         </div>
-        <button type="submit">Add Device</button>
+        <button type="submit">
+          {addingDevice ? (
+            <Loader className="loader-action-icon" />
+          ) : (
+            <span>Add Device</span>
+          )}
+        </button>
       </form>
       {message && <p>{message}</p>}
     </section>

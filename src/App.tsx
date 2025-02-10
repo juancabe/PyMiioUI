@@ -51,6 +51,29 @@ function App() {
     }
   }
 
+  // Function that sets a device in the devices array, and updates the state
+  async function set_device(device: StateDevice) {
+    try {
+      console.log("Setting device:", device.name);
+      // look for the device in the devices array
+      const index = devices.findIndex((d) => d.name === device.name);
+      // if the device is found, update it
+      if (index !== -1) {
+        devices[index] = device;
+        setDevices([...devices]);
+      }
+    } catch (error) {
+      const errorMessage = error as string;
+      console.error("Error setting device:", error);
+
+      setErrorProps({
+        errorName: "Error setting device",
+        description: errorMessage,
+      });
+      setShowError(true);
+    }
+  }
+
   useEffect(() => {
     // initial load
     getDevices();
@@ -71,7 +94,11 @@ function App() {
         <ul className="devices">
           {devices.map((device) => (
             <li className="devices-item" key={device.name}>
-              <Device device={device} remove_device={remove_device} />
+              <Device
+                device={device}
+                remove_device={remove_device}
+                set_device={set_device}
+              />
             </li>
           ))}
         </ul>

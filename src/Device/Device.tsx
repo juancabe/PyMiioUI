@@ -1,4 +1,5 @@
 import {
+  Bomb,
   CircleDot,
   CirclePlay,
   CirclePlus,
@@ -11,14 +12,16 @@ import "./Device.css";
 import { useEffect, useState } from "react";
 import AddAction from "./AddAction";
 import { invoke } from "@tauri-apps/api/core";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { Log } from "../LogsDisplay/LogsDisplay";
 
 export interface DeviceProps {
   device: StateDevice;
   remove_device: (name: string) => void;
+  set_device: (device: StateDevice) => void;
 }
 
-function Device({ device, remove_device }: DeviceProps) {
+function Device({ device, remove_device, set_device }: DeviceProps) {
   const [showAddAction, setShowAddAction] = useState(false);
   const [actionsRunning, setActionsRunning] = useState<Action[]>([]);
   const [expandedAction, setExpandedAction] = useState<Action | null>(null);
@@ -26,6 +29,19 @@ function Device({ device, remove_device }: DeviceProps) {
   useEffect(() => {
     console.log("showAddAction:", showAddAction);
   }, [showAddAction]);
+
+  async function handleRemoveDevice() {
+    const isConfirmed = await ask(
+      "Are you sure you want to remove the device?",
+      {
+        title: "Confirm removal",
+        kind: "warning",
+      }
+    );
+    if (isConfirmed) {
+      remove_device(device.name);
+    }
+  }
 
   async function handleRunAction(device: StateDevice, action: Action) {
     setActionsRunning([...actionsRunning, action]);
@@ -35,12 +51,36 @@ function Device({ device, remove_device }: DeviceProps) {
     });
     console.log("Response:", res);
     setActionsRunning(actionsRunning.filter((a) => a !== action));
-    // Dispatch new log event
     const newLog: Log = {
-      message: `Ran action ${action.name} on device ${device.name}`,
-      emmiter: "Device Component",
+      message: `[${action.name}]: ${res}`,
+      emmiter: device.name,
       timestamp: new Date().toISOString(),
     };
+    window.dispatchEvent(new CustomEvent("newLog", { detail: newLog }));
+  }
+
+  async function handleRemoveAction(device: StateDevice, action: Action) {
+    let newLog;
+    try {
+      await invoke("remove_action", {
+        deviceName: device.name,
+        actionName: action.name,
+      });
+      device.actions = device.actions.filter((a) => a !== action);
+      set_device(device);
+      newLog = {
+        message: `Removed action ${action.name} from device ${device.name}`,
+        emmiter: `${device.name}`,
+        timestamp: new Date().toISOString(),
+      };
+    } catch (e) {
+      console.error(e);
+      newLog = {
+        message: `Error removing action ${action.name} from device ${device.name}`,
+        emmiter: "Device Component",
+        timestamp: new Date().toISOString(),
+      };
+    }
     window.dispatchEvent(new CustomEvent("newLog", { detail: newLog }));
   }
 
@@ -53,7 +93,7 @@ function Device({ device, remove_device }: DeviceProps) {
           <Unplug className="device-status disconnected" />
         )}
         <h2>{device.name}</h2>
-        <button onClick={() => remove_device(device.name)} className="delete">
+        <button onClick={handleRemoveDevice} className="delete">
           <Trash2 />
         </button>
       </div>
@@ -69,13 +109,20 @@ function Device({ device, remove_device }: DeviceProps) {
         <ul>
           {device.actions.map((action, index) => (
             <li key={index}>
-              <button onClick={() => handleRunAction(device, action)}>
-                {actionsRunning.includes(action) ? (
-                  <Loader className="loader-action-icon" />
-                ) : (
-                  <CirclePlay className="play-action-icon" />
+              <div className="action-buttons-container">
+                <button onClick={() => handleRunAction(device, action)}>
+                  {actionsRunning.includes(action) ? (
+                    <Loader className="loader-action-icon" />
+                  ) : (
+                    <CirclePlay className="play-action-icon" />
+                  )}
+                </button>
+                {expandedAction === action && (
+                  <button onClick={() => handleRemoveAction(device, action)}>
+                    <Bomb className="remove-action-icon" />
+                  </button>
                 )}
-              </button>
+              </div>
               <div className="action-details-container">
                 <p
                   style={{ cursor: "pointer" }}
@@ -85,9 +132,8 @@ function Device({ device, remove_device }: DeviceProps) {
                 >
                   {action.name}
                 </p>
-                {expandedAction == action && (
+                {expandedAction === action && (
                   <div className="action-details">
-                    {/* Adjust below info as needed */}
                     <p>
                       <strong>Method:</strong> {action.method}
                     </p>

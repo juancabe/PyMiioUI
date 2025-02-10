@@ -96,9 +96,6 @@ h2 {
   justify-content: center;
 }
 
-.loader-action-icon {
-  animation: spin 1s linear infinite;
-}
 
 .action-details {
   width: 100%;
