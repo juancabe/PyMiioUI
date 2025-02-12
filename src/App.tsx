@@ -91,17 +91,27 @@ function App() {
   return (
     <div>
       <main className="container">
-        <ul className="devices">
-          {devices.map((device) => (
-            <li className="devices-item" key={device.name}>
-              <Device
-                device={device}
-                remove_device={remove_device}
-                set_device={set_device}
-              />
-            </li>
-          ))}
-        </ul>
+        {devices.length === 0 ? (
+          <div className="no-devices-container">
+            <h2>No Devices Added Yet!</h2>
+            <p>
+              Looks like you haven't added any devices. Get started by adding
+              one!
+            </p>
+          </div>
+        ) : (
+          <ul className="devices">
+            {devices.map((device) => (
+              <li key={device.name}>
+                <Device
+                  device={device}
+                  remove_device={remove_device}
+                  set_device={set_device}
+                />
+              </li>
+            ))}
+          </ul>
+        )}
       </main>
       {showError && errorProps && (
         <div className="modal-overlay" onClick={() => setShowError(false)}>

@@ -7,8 +7,33 @@
   list-style: none;
 }
 
+.no-devices-container {
+  text-align: center;
+  padding: 2rem;
+  animation: fadeIn 1s ease both;
+  background-color: #fcedd6;
+  border-radius: 8px;
+  margin: 2rem auto;
+  max-width: 500px;
+}
 
+.no-devices-container h2 {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
 
+.no-devices-container p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  color: #666;
+}
+
+/* Animation for the no-devices container */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
 
 
 

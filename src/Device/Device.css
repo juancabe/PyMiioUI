@@ -59,6 +59,21 @@ h2 {
   100% { transform: scale(1); }
 }
 
+.ip-container {
+  display: flex;
+  justify-content: center;
+}
+
+.ip-container p {
+  width: fit-content;
+}
+
+.device-type {
+  font-style: italic;
+  font-size: 20px;
+  margin-top: 0.5em;
+}
+
 .actions-container {
   background: #0000001b;
   border-radius: 8px;

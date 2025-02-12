@@ -35,7 +35,7 @@ function Layout() {
           Action Logs 🪵
         </button>
         <nav>
-          <Link to="/" style={{ color: "#FFFFFF" }}>
+          <Link to="/" className="layout-link">
             Your devices
           </Link>
         </nav>

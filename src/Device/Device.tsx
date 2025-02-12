@@ -5,6 +5,8 @@ import {
   CirclePlus,
   CircleX,
   Loader,
+  PlugZap,
+  RefreshCcw,
   Trash2,
   Unplug,
 } from "lucide-react";
@@ -25,6 +27,7 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
   const [showAddAction, setShowAddAction] = useState(false);
   const [actionsRunning, setActionsRunning] = useState<Action[]>([]);
   const [expandedAction, setExpandedAction] = useState<Action | null>(null);
+  const [reloadingDevice, setReloadingDevice] = useState(false);
 
   useEffect(() => {
     console.log("showAddAction:", showAddAction);
@@ -44,13 +47,13 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
   }
 
   async function handleRunAction(device: StateDevice, action: Action) {
-    setActionsRunning([...actionsRunning, action]);
+    setActionsRunning((prev) => [...prev, action]);
     let res = await invoke("run_action", {
       deviceName: device.name,
       action,
     });
     console.log("Response:", res);
-    setActionsRunning(actionsRunning.filter((a) => a !== action));
+    setActionsRunning((prev) => prev.filter((a) => a !== action));
     const newLog: Log = {
       message: `[${action.name}]: ${res}`,
       emmiter: device.name,
@@ -84,6 +87,19 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
     window.dispatchEvent(new CustomEvent("newLog", { detail: newLog }));
   }
 
+  async function handleReloadDevice(device: StateDevice) {
+    try {
+      setReloadingDevice(true);
+      device = await invoke("reload_device", {
+        deviceName: device.name,
+      });
+      set_device(device);
+    } catch (e) {
+      console.error(e);
+    }
+    setReloadingDevice(false);
+  }
+
   return (
     <section className="device">
       <div className="device-row">
@@ -97,8 +113,23 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
           <Trash2 />
         </button>
       </div>
-      <p>{device.ip}</p>
-      <p>{device.deviceType}</p>
+      <div className="ip-container">
+        <p>{device.ip}</p>
+        {reloadingDevice ? (
+          <button>
+            <Loader className="loader-action-icon" />
+          </button>
+        ) : (
+          <button onClick={() => handleReloadDevice(device)}>
+            {device.found ? (
+              <RefreshCcw className="remove-action-icon" />
+            ) : (
+              <PlugZap className="remove-action-icon" />
+            )}
+          </button>
+        )}
+      </div>
+      <p className="device-type">{device.deviceType}</p>
       <div className="actions-container">
         <div className="actions-header-container">
           <h3 className="actions-header">Actions</h3>

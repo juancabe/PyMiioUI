@@ -2884,7 +2884,7 @@ dependencies = [
 
 [[package]]
 name = "pymiio"
-version = "0.1.1"
+version = "0.1.3"
 dependencies = [
  "rust-py-miio",
  "serde",
@@ -3272,9 +3272,9 @@ dependencies = [
 
 [[package]]
 name = "rust-py-miio"
-version = "0.1.2"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5eaf62a21b8650a355d6f2b983707f08c868918b7418757e15b977b86072abe7"
+checksum = "868da8db50fb2f768a31e87d43f6f3f7e2a5e7f37b331213e639f0568b659f4f"
 dependencies = [
  "pyo3",
  "serde",
