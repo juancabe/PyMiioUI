@@ -25,6 +25,7 @@ This project depends mostly on the following libraries:
 
 - **rust-py-miio:** will use by default the Python interpreter available in your PATH and try to link with its dynamic library.
 You can modify the `package.json` file to compile it so that it uses a different Python interpreter.
+I needed to use that on **MacOS** because the default Python interpreter doesn't provide dynamically linkable libraries.
 ``` json
 "tauri": "cross-env PYO3_PYTHON=yourversion tauri"
 ```
