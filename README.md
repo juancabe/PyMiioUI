@@ -19,3 +19,27 @@ This project depends mostly on the following libraries:
 - **tauri:** A Rust library for building desktop applications with web technologies.
 - **react:** A JavaScript library for building user interfaces.
 - **typescript:** A superset of JavaScript that adds static typing to the language.
+
+
+## Building the Project
+
+- **rust-py-miio:** will use by default the Python interpreter available in your PATH and try to link with its dynamic library.
+You can modify the `package.json` file to compile it so that it uses a different Python interpreter.
+``` json
+"tauri": "cross-env PYO3_PYTHON=yourversion tauri"
+```
+- Then you need the following Python packages:
+```shell
+$ pip install python-miio
+$ pip install pyo3
+```
+
+- **tauri:** You can build the project using the following command:
+```shell
+$ npm run tauri build
+```
+
+## Images of the Application
+
+![Without a device](./readme-assets/nodevices.png)
+![With a device](./readme-assets/bombilla.png)
