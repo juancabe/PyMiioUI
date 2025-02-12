@@ -40,6 +40,21 @@ $ pip install pyo3
 $ npm run tauri build
 ```
 
+## Using the Application
+
+- First of all you may want to gather your devices' IP and token, you can use the following command:
+```shell
+$ miiocli cloud
+```
+
+- Then you can add a device to the Application using the `Add Device` button.
+
+- You can then interact with the device adding `Actions`.
+
+- Actions' methods are the same as the ones provided by the `python-miio` library.
+
+- Actions parameters' values will automatically be casted to an interpreted type from string.
+
 ## Images of the Application
 
 ![Without a device](./readme-assets/nodevices.png)
