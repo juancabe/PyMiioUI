@@ -1,0 +1,29 @@
+/* Customized scroll bar for WebKit browsers */
+::-webkit-scrollbar {
+  width: 6px;
+}
+  
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+  
+::-webkit-scrollbar-thumb {
+  background: #00000094;
+  border-radius: 4px;
+}
+  
+::-webkit-scrollbar-thumb:hover {
+  background: #00000045;
+}
+
+
+@media (prefers-color-scheme: dark) {
+    
+  ::-webkit-scrollbar-thumb {
+    background: #ffffff94;
+  }
+    
+  ::-webkit-scrollbar-thumb:hover {
+    background: #ffffff45;
+  }
+}

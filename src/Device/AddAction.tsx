@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import "./AddAction.css";
-import { CirclePlus } from "lucide-react";
+import { CirclePlus, PanelTopClose, PanelTopOpen } from "lucide-react";
 
 export interface AddActionProps {
   device: StateDevice;
@@ -26,6 +26,9 @@ function AddAction({ device }: AddActionProps) {
   // Argument for step
   const [newStepArgName, setNewStepArgName] = useState<string>("");
   const [newStepArgValue, setNewStepArgValue] = useState<string>("");
+
+  // Added states show
+  const [showAddedSteps, setShowAddedSteps] = useState<boolean>(false);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -54,9 +57,9 @@ function AddAction({ device }: AddActionProps) {
   function clearStepForm() {
     setStepMethod("");
     setStepArgs([]);
-    setStepInputDelay(0);
-    setStepOutputDelay(0);
-    setStepRepeat(1);
+    setStepInputDelay(undefined);
+    setStepOutputDelay(undefined);
+    setStepRepeat(undefined);
     setNewStepArgName("");
     setNewStepArgValue("");
   }
@@ -87,6 +90,15 @@ function AddAction({ device }: AddActionProps) {
     setNewStepArgValue("");
   }
 
+  function getOrdinal(n: number): string {
+    const j = n % 10;
+    const k = n % 100;
+    if (j === 1 && k !== 11) return "st";
+    if (j === 2 && k !== 12) return "nd";
+    if (j === 3 && k !== 13) return "rd";
+    return "th";
+  }
+
   return (
     <section className="add-action-container">
       <h2>Add Action</h2>
@@ -103,7 +115,7 @@ function AddAction({ device }: AddActionProps) {
         </div>
 
         <form className="step-form">
-          <legend>Add Step</legend>
+          <legend>Configure Step</legend>
           <select
             className="step-method"
             value={stepMethod}
@@ -185,25 +197,59 @@ function AddAction({ device }: AddActionProps) {
 
         {actionSteps.length > 0 && (
           <div className="step-list">
-            <h3>Added Steps:</h3>
+            <div className="row">
+              <h3>
+                <span className="no-bold">{actionSteps.length}</span> Added Step
+                {actionSteps.length > 1 ? "s" : ""}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowAddedSteps(!showAddedSteps)}
+              >
+                {showAddedSteps ? <PanelTopOpen /> : <PanelTopClose />}
+              </button>
+            </div>
             <ul>
-              {actionSteps.map((step, index) => (
-                <li key={index}>
-                  <strong>Method:</strong> {step.command.method},{" "}
-                  <strong>Input Delay:</strong> {step.input_delay},{" "}
-                  <strong>Output Delay:</strong> {step.output_delay},{" "}
-                  <strong>Repeat:</strong> {step.repeat}
-                  {step.command.arguments.length > 0 && (
-                    <ul>
-                      {step.command.arguments.map((arg, idx) => (
-                        <li key={idx}>
-                          {arg.name} {arg.value ? `= ${arg.value}` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              ))}
+              {showAddedSteps &&
+                actionSteps.map((step, index) => (
+                  <li key={index} className="step-added-item">
+                    <div className="step-added-name">
+                      <span>
+                        {index + 1}
+                        <span className="ordinal">{getOrdinal(index + 1)}</span>
+                      </span>
+                    </div>
+                    <div className="step-added-method-args">
+                      <div className="method-item">
+                        <strong>Method</strong> {step.command.method}
+                      </div>
+                      <div className="method-item">
+                        <strong>Arguments</strong>
+                        {step.command.arguments.length > 0 && (
+                          <ul>
+                            {step.command.arguments.map((arg, idx) => (
+                              <li key={idx}>
+                                {arg.name}
+                                {arg.value ? `: ${arg.value}` : ""}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                    <div className="step-added-delays">
+                      <div className="delay-item">
+                        <strong>Input Delay</strong> {step.input_delay} ms
+                      </div>
+                      <div className="delay-item">
+                        <strong>Output Delay</strong> {step.output_delay} ms
+                      </div>
+                      <div className="delay-item">
+                        <strong>Repeat</strong> {step.repeat} times
+                      </div>
+                    </div>
+                  </li>
+                ))}
             </ul>
           </div>
         )}
