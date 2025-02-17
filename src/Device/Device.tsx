@@ -165,15 +165,33 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
                 </p>
                 {expandedAction === action && (
                   <div className="action-details">
-                    <p>
-                      <strong>Method:</strong> {action.method}
-                    </p>
-                    <p>
-                      <strong>Arguments:</strong>{" "}
-                      {action.arguments
-                        ? JSON.stringify(action.arguments)
-                        : "None"}
-                    </p>
+                    {action.steps.map((step, idx) => (
+                      <div key={idx} className="step-detail">
+                        <p>
+                          <strong>Method:</strong> {step.command.method}
+                        </p>
+                        <p>
+                          <strong>Input Delay:</strong> {step.input_delay} |{" "}
+                          <strong>Output Delay:</strong> {step.output_delay} |{" "}
+                          <strong>Repeat:</strong> {step.repeat}
+                        </p>
+                        {step.command.arguments.length > 0 ? (
+                          <p>
+                            <strong>Arguments:</strong>{" "}
+                            {step.command.arguments.map((arg, i) => (
+                              <span key={i}>
+                                {arg.name} = {arg.value}
+                                {i < step.command.arguments.length - 1 && ", "}
+                              </span>
+                            ))}
+                          </p>
+                        ) : (
+                          <p>
+                            <strong>Arguments:</strong> None
+                          </p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

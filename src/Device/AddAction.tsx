@@ -9,18 +9,29 @@ export interface AddActionProps {
 
 function AddAction({ device }: AddActionProps) {
   const [actionName, setActionName] = useState<string>("");
-  const [actionMethod, setActionMethod] = useState<string>("");
-  const [actionArgs, setActionArgs] = useState<Argument[]>([]);
+  const [actionSteps, setActionSteps] = useState<ActionStep[]>([]);
   const [message, setMessage] = useState<string>("");
-  const [newArgName, setNewArgName] = useState<string>("");
-  const [newArgValue, setNewArgValue] = useState<string>("");
+
+  // Step form state
+  const [stepMethod, setStepMethod] = useState<string>("");
+  const [stepArgs, setStepArgs] = useState<Argument[]>([]);
+  const [stepInputDelay, setStepInputDelay] = useState<number | undefined>(
+    undefined
+  );
+  const [stepOutputDelay, setStepOutputDelay] = useState<number | undefined>(
+    undefined
+  );
+  const [stepRepeat, setStepRepeat] = useState<number | undefined>(undefined);
+
+  // Argument for step
+  const [newStepArgName, setNewStepArgName] = useState<string>("");
+  const [newStepArgValue, setNewStepArgValue] = useState<string>("");
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const action: Action = {
       name: actionName,
-      method: actionMethod,
-      arguments: actionArgs,
+      steps: actionSteps,
     };
     try {
       await invoke("add_action", {
@@ -29,31 +40,51 @@ function AddAction({ device }: AddActionProps) {
       });
       setMessage("Action added successfully!");
       device.actions.push(action);
-      // Clear fields
+      // Clear entire form
       setActionName("");
-      setActionMethod("");
-      setActionArgs([]);
-      // Clear argument inputs
-      setNewArgName("");
-      setNewArgValue("");
-      // Dispatch an event to notify that an action was added
+      setActionSteps([]);
+      clearStepForm();
       window.dispatchEvent(new CustomEvent("actionAdded"));
     } catch (error) {
       console.error("Error adding action:", error);
       setMessage("Failed to add action: " + error);
     }
   }
-  function handleAddArg() {
-    if (!newArgName.trim()) return;
-    if (!newArgValue.trim()) return;
-    const arg: Argument = {
-      name: newArgName.trim(),
-      value: newArgValue.trim(),
+
+  function clearStepForm() {
+    setStepMethod("");
+    setStepArgs([]);
+    setStepInputDelay(0);
+    setStepOutputDelay(0);
+    setStepRepeat(1);
+    setNewStepArgName("");
+    setNewStepArgValue("");
+  }
+
+  function handleAddStep() {
+    if (!stepMethod) return;
+    const newStep: ActionStep = {
+      command: {
+        method: stepMethod,
+        arguments: stepArgs,
+      },
+      input_delay: stepInputDelay ? stepInputDelay : 0,
+      output_delay: stepOutputDelay ? stepOutputDelay : 0,
+      repeat: stepRepeat ? stepRepeat : 0,
     };
-    setActionArgs([...actionArgs, arg]);
-    // Clear argument inputs after adding
-    setNewArgName("");
-    setNewArgValue("");
+    setActionSteps([...actionSteps, newStep]);
+    clearStepForm();
+  }
+
+  function handleAddStepArg() {
+    if (!newStepArgName.trim() || !newStepArgValue.trim()) return;
+    const arg: Argument = {
+      name: newStepArgName.trim(),
+      value: newStepArgValue.trim(),
+    };
+    setStepArgs([...stepArgs, arg]);
+    setNewStepArgName("");
+    setNewStepArgValue("");
   }
 
   return (
@@ -70,11 +101,13 @@ function AddAction({ device }: AddActionProps) {
             required
           />
         </div>
-        <div>
+
+        <form className="step-form">
+          <legend>Add Step</legend>
           <select
-            id="actionMethod"
-            value={actionMethod}
-            onChange={(e) => setActionMethod(e.target.value)}
+            className="step-method"
+            value={stepMethod}
+            onChange={(e) => setStepMethod(e.target.value)}
             required
           >
             <option value="" disabled>
@@ -82,42 +115,93 @@ function AddAction({ device }: AddActionProps) {
             </option>
             {device.methods.map((method, index) => (
               <option key={index} value={method.name}>
-                <h3>{method.name}</h3>
-                <p>{method.signature}</p>
+                {method.name} - {method.signature}
               </option>
             ))}
           </select>
-        </div>
-        <div className="add-arguments">
-          <h3>Add Argument</h3>
-          <div className="argument-inputs">
-            <input
-              type="text"
-              id="argName"
-              placeholder="Argument Name"
-              value={newArgName}
-              onChange={(e) => setNewArgName(e.target.value)}
-            />
-            <input
-              type="text"
-              id="argDefault"
-              placeholder="Value"
-              value={newArgValue}
-              onChange={(e) => setNewArgValue(e.target.value)}
-            />
-            <button type="button" onClick={handleAddArg}>
-              <CirclePlus />
-            </button>
-          </div>
-        </div>
 
-        {actionArgs.length > 0 && (
-          <div className="argument-list">
-            <h4>Added Arguments:</h4>
+          <div className="step-delays">
+            <input
+              type="number"
+              id="inputDelay"
+              placeholder="Input Delay"
+              value={stepInputDelay}
+              onChange={(e) => setStepInputDelay(Number(e.target.value))}
+            />
+            <input
+              type="number"
+              id="outputDelay"
+              placeholder="Output Delay"
+              value={stepOutputDelay}
+              onChange={(e) => setStepOutputDelay(Number(e.target.value))}
+            />
+            <input
+              type="number"
+              id="repeat"
+              placeholder="Repeat"
+              value={stepRepeat}
+              onChange={(e) => setStepRepeat(Number(e.target.value))}
+            />
+          </div>
+
+          <div className="add-arguments">
+            <h3>Add Argument for Step</h3>
+            <div className="argument-inputs">
+              <input
+                type="text"
+                id="stepArgName"
+                placeholder="Argument Name"
+                value={newStepArgName}
+                onChange={(e) => setNewStepArgName(e.target.value)}
+              />
+              <input
+                type="text"
+                id="stepArgValue"
+                placeholder="Value"
+                value={newStepArgValue}
+                onChange={(e) => setNewStepArgValue(e.target.value)}
+              />
+              <button type="button" onClick={handleAddStepArg}>
+                <CirclePlus />
+              </button>
+            </div>
+            {stepArgs.length > 0 && (
+              <div className="argument-list">
+                <h4>Added Arguments:</h4>
+                <ul>
+                  {stepArgs.map((arg, index) => (
+                    <li key={index}>
+                      {arg.name} {arg.value ? `= ${arg.value}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          <button type="button" onClick={handleAddStep}>
+            Add Step
+          </button>
+        </form>
+
+        {actionSteps.length > 0 && (
+          <div className="step-list">
+            <h3>Added Steps:</h3>
             <ul>
-              {actionArgs.map((arg, index) => (
+              {actionSteps.map((step, index) => (
                 <li key={index}>
-                  {arg.name} {arg.value ? `= ${arg.value}` : ""}
+                  <strong>Method:</strong> {step.command.method},{" "}
+                  <strong>Input Delay:</strong> {step.input_delay},{" "}
+                  <strong>Output Delay:</strong> {step.output_delay},{" "}
+                  <strong>Repeat:</strong> {step.repeat}
+                  {step.command.arguments.length > 0 && (
+                    <ul>
+                      {step.command.arguments.map((arg, idx) => (
+                        <li key={idx}>
+                          {arg.name} {arg.value ? `= ${arg.value}` : ""}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,21 +1,85 @@
 use rust_py_miio;
-use serde::{de, ser::SerializeStruct};
+use serde::ser::SerializeStruct;
 use serde_json;
 use std::sync::Mutex;
 use tauri::Manager;
 use tauri_plugin_store::StoreExt;
+use tokio::time::{sleep, Duration};
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
+/// Argument to pass to a method.
 struct Argument {
     name: String,
     value: String,
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
+/// Command to execute.
+struct DeviceCommand {
+    // Name of the method to call.
+    method: String,
+    // Arguments of the method
+    arguments: Vec<Argument>,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+// Part of an Action
+struct ActionStep {
+    command: DeviceCommand,
+    /// Milliseconds of delay before the command is sent.
+    input_delay: u64,
+    /// Milliseconds of delay after the command is sent.
+    output_delay: u64,
+    /// Number of times to repeat the command, 0 means it'll be done once.
+    repeat: u64,
+}
+
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
+/// Action to perform on a device.
 struct Action {
     name: String,
-    method: String,
-    arguments: Vec<Argument>,
+    steps: Vec<ActionStep>,
+}
+
+impl Action {
+    /// The `run` method executes the action by iterating over its steps and calling
+    /// the corresponding device methods asynchronously with specified delays.
+    ///
+    /// # Arguments
+    ///
+    /// * `device` - A reference to the `rust_py_miio::Device` on which the action will be performed.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<(), String>` - Returns `Ok(())` if the action is successfully executed, otherwise returns an error message.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if there is an issue calling a method on the device.
+    async fn run(&self, device: &rust_py_miio::Device) -> Result<Vec<String>, String> {
+        let mut ret: Vec<String> = Vec::new();
+        for step in &self.steps {
+            // Repeat 0 times means do it once.
+            for _ in 0..=step.repeat {
+                // Perform the input delay asynchronously.
+                sleep(Duration::from_millis(step.input_delay)).await;
+                let res = device
+                    .call_method(
+                        &step.command.method,
+                        step.command
+                            .arguments
+                            .iter()
+                            .map(|a| a.value.as_str())
+                            .collect(),
+                    )
+                    .map_err(|err| format!("Error calling method: {}", err))?;
+                ret.push(res);
+                // Perform the output delay asynchronously.
+                sleep(Duration::from_millis(step.output_delay)).await;
+            }
+        }
+        Ok(ret)
+    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
@@ -110,7 +174,7 @@ impl Default for AppState {
     }
 }
 
-enum UserSettings {}
+// enum UserSettings {}
 #[tauri::command]
 async fn remove_action(
     app: tauri::AppHandle,
@@ -214,27 +278,27 @@ async fn run_action(
     state: tauri::State<'_, Mutex<AppState>>,
     device_name: String,
     action: Action,
-) -> Result<String, String> {
-    let state = state.lock().unwrap();
-    let device = state
-        .loaded_devices
-        .as_ref()
-        .ok_or_else(|| "No devices loaded".to_string())?
-        .iter()
-        .find(|sd| sd.store_device.name == device_name)
-        .ok_or_else(|| "Device not found".to_string())?;
+) -> Result<Vec<String>, String> {
+    // Limit the scope of the lock.
+    let device_ref = {
+        let state = state.lock().map_err(|err| format!("Lock error: {}", err))?;
+        let state_device = state
+            .loaded_devices
+            .as_ref()
+            .ok_or_else(|| "No devices loaded".to_string())?
+            .iter()
+            .find(|sd| sd.store_device.name == device_name)
+            .ok_or_else(|| "Device not found".to_string())?;
+        // Clone or otherwise obtain an owned reference that is Send.
+        state_device
+            .device
+            .as_ref()
+            .ok_or_else(|| "Device not connected".to_string())?
+            .clone()
+    };
 
-    let device = device
-        .device
-        .as_ref()
-        .ok_or_else(|| "Device not connected".to_string())?;
-
-    let res = device
-        .call_method(
-            &action.method,
-            action.arguments.iter().map(|a| a.value.as_str()).collect(),
-        )
-        .map_err(|err| format!("Error calling method: {}", err))?;
+    // Now that we dropped the lock, run the action.
+    let res = action.run(&device_ref).await?;
     Ok(res)
 }
 
@@ -466,9 +530,10 @@ pub fn run() {
 
             state.device_types = rust_py_miio::get_device_types().ok();
 
-            let settings_store = app.store("user-settings.json")?;
+            // let settings_store = app.store("user-settings.json")?;
 
             let devices_store = app.store("devices.json")?;
+            // devices_store.clear();
 
             // Load devices from devices_store.
             let entries: Vec<(String, serde_json::Value)> = devices_store.entries();

@@ -3,10 +3,21 @@ interface Argument {
   value: string;
 }
 
-interface Action {
-  name: string;
+interface DeviceCommand {
   method: string;
   arguments: Argument[];
+}
+
+interface ActionStep {
+  command: DeviceCommand;
+  input_delay: number;
+  output_delay: number;
+  repeat: number;
+}
+
+interface Action {
+  name: string;
+  steps: ActionStep[];
 }
 
 interface Method {
