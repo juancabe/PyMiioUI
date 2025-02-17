@@ -7,6 +7,11 @@
   list-style: none;
 }
 
+.devices-item {
+  box-shadow: 0 15px 15px rgba(0, 0, 0, 0.4);
+  margin: 25px;
+}
+
 .no-devices-container {
   text-align: center;
   padding: 2rem;

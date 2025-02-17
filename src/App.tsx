@@ -102,7 +102,7 @@ function App() {
         ) : (
           <ul className="devices">
             {devices.map((device) => (
-              <li key={device.name}>
+              <li key={device.name} className="devices-item">
                 <Device
                   device={device}
                   remove_device={remove_device}

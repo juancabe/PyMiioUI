@@ -16,15 +16,27 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     -webkit-text-size-adjust: 100%;
+    overflow-y: hidden;
+}
+
+.layout-container {
+    display: grid;
+    grid-template-rows: auto 1fr; /* header takes the necessary space, main takes remaining */
+    height: 100vh; /* ensures the whole viewport is used */
+}
+
+main {
+    overflow-y: auto;
 }
   
 .container {
-margin: 0;
-padding-top: 2vh;
-display: flex;
-flex-direction: column;
-justify-content: center;
-text-align: center;
+    margin: 0;
+    padding-top: 2vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    
 }
 
 header {
@@ -32,6 +44,8 @@ header {
     justify-content: space-between;
     align-items: center;
     background: #00000015;
+    /* shadow below */
+    box-shadow: 0 20px 20px rgba(0, 0, 0, 0.4);
 }
 
 nav {

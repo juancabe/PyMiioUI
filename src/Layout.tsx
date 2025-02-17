@@ -23,7 +23,7 @@ function Layout() {
   }, []);
 
   return (
-    <div>
+    <div className="layout-container">
       <header>
         {/* <button className="layout-button" onClick={() => navigate(-1)}>
           Back
