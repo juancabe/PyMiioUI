@@ -64,8 +64,12 @@ h2 {
   justify-content: center;
 }
 
-.ip-container p {
-  width: fit-content;
+.ip-container input {
+  padding: 4px;
+  margin: 4px;
+  text-align: center;
+  margin-left: 2%;
+  margin-right: 2px;
 }
 
 .device-type {

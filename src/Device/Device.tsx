@@ -11,7 +11,7 @@ import {
   Unplug,
 } from "lucide-react";
 import "./Device.css";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AddAction from "./AddAction";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
@@ -28,6 +28,10 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
   const [actionsRunning, setActionsRunning] = useState<Action[]>([]);
   const [expandedAction, setExpandedAction] = useState<Action | null>(null);
   const [reloadingDevice, setReloadingDevice] = useState(false);
+  const [ip, setIP] = useState(device.ip);
+
+  const [ipEditable, setIpEditable] = useState(false);
+  const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     console.log("showAddAction:", showAddAction);
@@ -100,6 +104,22 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
     setReloadingDevice(false);
   }
 
+  async function handleUpdateDeviceIP(device: StateDevice) {
+    try {
+      console.log("Updating device IP...");
+      setReloadingDevice(true);
+      device = await invoke("update_device_ip", {
+        deviceName: device.name,
+        ip,
+      });
+      console.log("Device updated:", device);
+      set_device(device);
+    } catch (e) {
+      console.error(e);
+    }
+    setReloadingDevice(false);
+  }
+
   return (
     <section className="device">
       <div className="device-row">
@@ -114,7 +134,36 @@ function Device({ device, remove_device, set_device }: DeviceProps) {
         </button>
       </div>
       <div className="ip-container">
-        <p>{device.ip}</p>
+        <input
+          value={ip}
+          readOnly={!ipEditable}
+          onChange={(e) => setIP(e.target.value)}
+          onMouseDown={() => {
+            // start a timer for 2 seconds on mousedown
+            pressTimer.current = setTimeout(() => {
+              setIpEditable(true);
+            }, 2000);
+          }}
+          onMouseUp={() => {
+            // cancel timer if released before 2 seconds
+            if (pressTimer.current) {
+              clearTimeout(pressTimer.current);
+              pressTimer.current = null;
+            }
+          }}
+          onMouseLeave={() => {
+            // cancel timer if leaving the input area
+            if (pressTimer.current) {
+              clearTimeout(pressTimer.current);
+              pressTimer.current = null;
+            }
+          }}
+          onBlur={async () => {
+            // When leaving, disable editing and update device IP
+            setIpEditable(false);
+            await handleUpdateDeviceIP(device);
+          }}
+        />
         {reloadingDevice ? (
           <button>
             <Loader className="loader-action-icon" />

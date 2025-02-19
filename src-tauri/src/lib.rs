@@ -498,6 +498,51 @@ async fn reload_device(
     Ok(state_device.clone())
 }
 
+/// Updates the device's IP and reloads it
+#[tauri::command]
+async fn update_device_ip(
+    state: tauri::State<'_, Mutex<AppState>>,
+    app: tauri::AppHandle,
+    device_name: &str,
+    ip: &str,
+) -> Result<StateDevice, String> {
+    let devices_store = app.store("devices.json").map_err(|err| {
+        format!(
+            "Opening devices store, try again or restart: {}",
+            err.to_string()
+        )
+    })?;
+
+    {
+        let mut state_ul = state.lock().unwrap();
+        let state_device = state_ul
+            .loaded_devices
+            .as_mut()
+            .ok_or_else(|| "No devices loaded".to_string())?
+            .iter_mut()
+            .find(|sd| sd.store_device.name == device_name)
+            .ok_or_else(|| "Device not found".to_string())?;
+
+        state_device.store_device.ip = ip.to_string();
+
+        devices_store.set(
+            device_name,
+            serde_json::to_string(&state_device.store_device).map_err(|err| {
+                format!(
+                    "Serializing device: {}, try again or restart",
+                    err.to_string()
+                )
+            })?,
+        );
+
+        println!("Device updated: {} to ip {}", device_name, ip);
+
+        // State unlocked here
+    }
+
+    reload_device(state, device_name).await
+}
+
 fn state_devices_from_entries<'a>(
     entries: &'a [(String, serde_json::Value)],
 ) -> impl Iterator<Item = StateDevice> + 'a {
@@ -546,7 +591,7 @@ pub fn run() {
                     .get_or_insert_with(|| Vec::new())
                     .push(sd);
             });
-
+            println!("Setup complete");
             Ok(())
         })
         .plugin(tauri_plugin_store::Builder::new().build())
@@ -561,7 +606,8 @@ pub fn run() {
             add_action,
             run_action,
             reload_device,
-            remove_action
+            remove_action,
+            update_device_ip
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
