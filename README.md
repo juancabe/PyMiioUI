@@ -32,7 +32,6 @@ I needed to use that on **MacOS** because the default Python interpreter doesn't
 - Then you need the following Python packages:
 ```shell
 $ pip install python-miio
-$ pip install pyo3
 ```
 
 - **tauri:** You can build the project using the following command:
